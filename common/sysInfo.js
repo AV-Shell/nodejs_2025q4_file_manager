@@ -1,5 +1,6 @@
 import { EOL, homedir, userInfo } from 'os';
 import { getCPUInfo } from './cpuInfo.js';
+import { invalidCommandMessage } from "./constants.js";
 
 export const myOs = (command) => {
   switch (command) {
@@ -20,7 +21,7 @@ export const myOs = (command) => {
       break;
 
     default:
-      throw new Error();
+      console.log(invalidCommandMessage);
       break;
   }
 };
