@@ -1,0 +1,20 @@
+{
+  "name": "file_manager",
+  "version": "1.0.0",
+  "description": "nodejs 2025 q4 course, task2",
+  "homepage": "https://github.com/AV-Shell/nodejs_2025q4_file_manager#readme",
+  "bugs": {
+    "url": "https://github.com/AV-Shell/nodejs_2025q4_file_manager/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AV-Shell/nodejs_2025q4_file_manager.git"
+  },
+  "license": "ISC",
+  "author": "",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  }
+}
