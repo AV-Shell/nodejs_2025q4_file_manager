@@ -19,6 +19,7 @@ import {
 import { myOs } from "./sysInfo.js";
 import { calculateHash } from "./hash.js";
 import { compress } from "./brotli.js";
+import { CustomInputError } from "./errors.js";
 
 export class MyController {
   constructor() {
@@ -31,67 +32,87 @@ export class MyController {
   process = async line => {
     try {
       if (typeof line !== "string") {
-        throw new Error("fail input");
+        throw new CustomInputError();
       }
       const { command, rest } = this.parseCommand(line);
 
       switch (command) {
         case ".exit":
+          this.checkZeroArgsPath(rest);
           await this.exit();
           break;
         case "":
           break;
         case "up":
+          this.checkZeroArgsPath(rest);
           this.changePath("..");
           break;
         case "cd":
-          this.changePath(getPath(this.path, this.pathUnshelling(rest)));
+          this.changePath(getPath(this.path, this.checkSingleArgPath(rest)));
           break;
         case "ls":
         case "dir":
+          this.checkZeroArgsPath(rest);
           await list(this.path);
           break;
         case "cat":
-          await read(getPath(this.path, this.pathUnshelling(rest)));
+          await read(getPath(this.path, this.checkSingleArgPath(rest)));
           break;
         case "add":
-          await create(getPath(this.path, this.pathUnshelling(rest)));
+          await create(getPath(this.path, this.checkSingleArgPath(rest)));
           break;
         case "mkdir":
-          await makeDirectory(getPath(this.path, this.pathUnshelling(rest)));
+          await makeDirectory(
+            getPath(this.path, this.checkSingleArgPath(rest))
+          );
           break;
         case "rn":
           const { path: pathToFileRename, rest: fileNameRename } =
             this.parsePath(rest);
+          this.checkDoubleArgsPath({ pathToFileRename, fileNameRename });
           await rename({
             sourceFilePath: getPath(this.path, pathToFileRename),
             newFileName: fileNameRename,
           });
           break;
         case "cp":
-          await copy(this.getPathToFileAndPathToDestinationFolder(rest));
+          await copy(
+            this.checkDoubleArgsPath(
+              this.getPathToFileAndPathToDestinationFolder(rest)
+            )
+          );
           break;
         case "mv":
-          await move(this.getPathToFileAndPathToDestinationFolder(rest));
+          await move(
+            this.checkDoubleArgsPath(
+              this.getPathToFileAndPathToDestinationFolder(rest)
+            )
+          );
           break;
         case "rm":
-          await remove(getPath(this.path, this.pathUnshelling(rest)));
+          await remove(getPath(this.path, this.checkSingleArgPath(rest)));
           break;
         case "os":
           await myOs(rest);
           break;
         case "hash":
-          await calculateHash(getPath(this.path, this.pathUnshelling(rest)));
+          await calculateHash(
+            getPath(this.path, this.checkSingleArgPath(rest))
+          );
           break;
         case "compress":
           await compress({
-            ...this.getPathToFileAndPathToDestinationFolder(rest),
+            ...this.checkDoubleArgsPath(
+              this.getPathToFileAndPathToDestinationFolder(rest)
+            ),
             isCompress: true,
           });
           break;
         case "decompress":
           await compress({
-            ...this.getPathToFileAndPathToDestinationFolder(rest),
+            ...this.checkDoubleArgsPath(
+              this.getPathToFileAndPathToDestinationFolder(rest)
+            ),
             isCompress: false,
           });
           break;
@@ -100,7 +121,9 @@ export class MyController {
           break;
       }
     } catch (error) {
-      this.fail();
+      error instanceof CustomInputError
+        ? this.fail(invalidCommandMessage)
+        : this.fail();
     }
     this.where();
   };
@@ -122,11 +145,11 @@ export class MyController {
       const endOfPath = line.indexOf(`"`, 1);
       if (~endOfPath) {
         return {
-          path: this.pathUnshelling(line.slice(0, endOfPath +1)),
-          rest: this.pathUnshelling(line.slice(endOfPath +1).trim()),
+          path: this.pathUnshelling(line.slice(0, endOfPath + 1)),
+          rest: this.pathUnshelling(line.slice(endOfPath + 1).trim()),
         };
       } else {
-        throw new Error();
+        throw new CustomInputError();
       }
     } else if (line.length > 2) {
       const endOfPath = line.indexOf(" ", 1);
@@ -142,6 +165,29 @@ export class MyController {
         };
       }
     }
+  };
+
+  checkZeroArgsPath = path => {
+    if (path) {
+      throw new CustomInputError();
+    }
+  };
+
+  checkSingleArgPath = path => {
+    const resultPath = this.pathUnshelling(path);
+
+    if (!resultPath) {
+      throw new CustomInputError();
+    }
+    return resultPath;
+  };
+
+  checkDoubleArgsPath = args => {
+    const argsArray = Object.values(args);
+    if (argsArray.length !== 2 || !argsArray[0] || !argsArray[1]) {
+      throw new CustomInputError();
+    }
+    return args;
   };
 
   pathUnshelling = path => {
